@@ -13,4 +13,6 @@ export const env = {
   rabbitmqUrl: requireEnv("RABBITMQ_URL"),
   queueName: requireEnv("QUEUE_NAME"),
   workerPrefetch: Number(requireEnv("WORKER_PREFETCH")),
+  reclaimCheckIntervalMs: Number(requireEnv("RECLAIM_CHECK_INTERVAL_MS")),
+  reclaimTimeoutMinutes: Number(requireEnv("RECLAIM_TIMEOUT_MINUTES")),
 };

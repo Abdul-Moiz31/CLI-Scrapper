@@ -58,3 +58,18 @@ export async function handleFailure(jobId: number, errorMessage: string): Promis
   );
   return result.rows[0] ?? null;
 }
+
+export async function reclaimStuckJobs(timeoutMinutes: number): Promise<JobRow[]> {
+  const result = await pool.query<JobRow>(
+    `UPDATE jobs
+     SET attempts = attempts + 1,
+         status = CASE WHEN attempts + 1 >= max_attempts THEN 'failed'
+                       ELSE 'pending' END,
+         error = 'reclaimed: worker did not complete in time'
+     WHERE status = 'processing'
+       AND locked_at < now() - make_interval(mins => $1)
+     RETURNING *`,
+    [timeoutMinutes],
+  );
+  return result.rows;
+}
