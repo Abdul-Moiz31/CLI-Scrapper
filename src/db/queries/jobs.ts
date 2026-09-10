@@ -34,3 +34,27 @@ export async function claimJob(jobId: number, workerId: string): Promise<JobRow 
   );
   return result.rows[0] ?? null;
 }
+
+export async function markDone(jobId: number): Promise<JobRow | null> {
+  const result = await pool.query<JobRow>(
+    `UPDATE jobs SET status = 'done', updated_at = now()
+     WHERE id = $1
+     RETURNING *`,
+    [jobId],
+  );
+  return result.rows[0] ?? null;
+}
+
+export async function handleFailure(jobId: number, errorMessage: string): Promise<JobRow | null> {
+  const result = await pool.query<JobRow>(
+    `UPDATE jobs
+     SET attempts = attempts + 1,
+         status = CASE WHEN attempts + 1 >= max_attempts THEN 'failed'
+                       ELSE 'pending' END,
+         error = $2
+     WHERE id = $1
+     RETURNING *`,
+    [jobId, errorMessage],
+  );
+  return result.rows[0] ?? null;
+}
