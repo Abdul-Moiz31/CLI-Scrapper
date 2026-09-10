@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS jobs (
   id            BIGSERIAL PRIMARY KEY,
   url           TEXT NOT NULL,
   source        TEXT NOT NULL,               -- matches a key in definitions/index.ts
+  page_type     TEXT NOT NULL DEFAULT 'detail', -- matches a key in that source's Definition.pageTypes
+  parent_job_id BIGINT REFERENCES jobs(id),  -- the list job that discovered this job, if any
   status        TEXT NOT NULL DEFAULT 'pending', -- pending | processing | done | failed
   attempts      INT NOT NULL DEFAULT 0,
   max_attempts  INT NOT NULL DEFAULT 3,
@@ -15,6 +17,11 @@ CREATE TABLE IF NOT EXISTS jobs (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Speeds up "which jobs did this list job spawn" lookups
+CREATE INDEX IF NOT EXISTS idx_jobs_parent_job_id
+  ON jobs (parent_job_id)
+  WHERE parent_job_id IS NOT NULL;
 
 -- Speeds up the claim query: WHERE status = 'pending'
 CREATE INDEX IF NOT EXISTS idx_jobs_pending
