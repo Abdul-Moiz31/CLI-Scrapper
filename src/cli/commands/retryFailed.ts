@@ -1,5 +1,5 @@
 // query failed jobs, reset to pending, republish
-import { retryFailedJobs } from "../../db/queries/jobs";
+import { retryFailedJobs } from "../../db/queries/jobsMaintenance";
 import { publishJob } from "../../queue/publisher";
 import { logger } from "../../logger";
 

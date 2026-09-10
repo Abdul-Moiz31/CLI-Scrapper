@@ -1,5 +1,5 @@
 // setInterval wrapper around the reclaim query
-import { reclaimStuckJobs } from "../db/queries/jobs";
+import { reclaimStuckJobs } from "../db/queries/jobsMaintenance";
 import { publishJob } from "../queue/publisher";
 import { env } from "../config/env";
 import { logger } from "../logger";

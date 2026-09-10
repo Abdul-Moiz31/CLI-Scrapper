@@ -1,26 +1,41 @@
-// insertJob, claimJob (atomic), markDone, handleFailure, reclaimStuck
+// insertJob, insertChildJobs, claimJob (atomic), markDone, handleFailure
 import { pool } from "../client";
+import { JobRow, ChildJobInput } from "../../types";
 
-export async function insertJob(url: string, source: string): Promise<number> {
+export async function insertJob(
+  url: string,
+  source: string,
+  pageType: string,
+  parentJobId: number | null = null,
+): Promise<number> {
   const result = await pool.query<{ id: number }>(
-    `INSERT INTO jobs (url, source) VALUES ($1, $2) RETURNING id`,
-    [url, source],
+    `INSERT INTO jobs (url, source, page_type, parent_job_id) VALUES ($1, $2, $3, $4) RETURNING id`,
+    [url, source, pageType, parentJobId],
   );
   return result.rows[0].id;
 }
 
-interface JobRow {
-  id: number;
-  url: string;
-  source: string;
-  status: string;
-  attempts: number;
-  max_attempts: number;
-  worker_id: string | null;
-  locked_at: Date | null;
-  error: string | null;
-  created_at: Date;
-  updated_at: Date;
+// insert a batch of jobs discovered by one list job, in a single round trip
+export async function insertChildJobs(
+  parentJobId: number,
+  source: string,
+  children: ChildJobInput[],
+): Promise<number[]> {
+  if (children.length === 0) return [];
+
+  const values: string[] = [];
+  const params: unknown[] = [];
+  children.forEach((child, i) => {
+    const offset = i * 4;
+    values.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4})`);
+    params.push(child.url, source, child.pageType, parentJobId);
+  });
+
+  const result = await pool.query<{ id: number }>(
+    `INSERT INTO jobs (url, source, page_type, parent_job_id) VALUES ${values.join(", ")} RETURNING id`,
+    params,
+  );
+  return result.rows.map((row) => row.id);
 }
 
 // claim jobs: update a job's status to 'processing' and assign it to a worker if it's currently 'pending'
@@ -59,34 +74,4 @@ export async function handleFailure(jobId: number, errorMessage: string): Promis
     [jobId, errorMessage],
   );
   return result.rows[0] ?? null;
-}
-
-// reclaim stuck jobs: find jobs that have been 'processing' for longer than the specified timeout and reset their status to 'pending' or 'failed' based on attempts
-
-export async function reclaimStuckJobs(timeoutMinutes: number): Promise<JobRow[]> {
-  const result = await pool.query<JobRow>(
-    `UPDATE jobs
-     SET attempts = attempts + 1,
-         status = CASE WHEN attempts + 1 >= max_attempts THEN 'failed'
-                       ELSE 'pending' END,
-         error = 'reclaimed: worker did not complete in time',
-         updated_at = now()
-     WHERE status = 'processing'
-       AND locked_at < now() - make_interval(mins => $1)
-     RETURNING *`,
-    [timeoutMinutes],
-  );
-  return result.rows;
-}
-
-// retry failed jobs: reset the status of failed jobs to 'pending' and clear the error message, optionally filtering by jobId
-
-export async function retryFailedJobs(jobId?: number): Promise<JobRow[]> {
-  const result = await pool.query<JobRow>(
-    `UPDATE jobs SET status = 'pending', error = NULL, updated_at = now()
-     WHERE status = 'failed' AND ($1::bigint IS NULL OR id = $1)
-     RETURNING *`,
-    [jobId ?? null],
-  );
-  return result.rows;
 }
