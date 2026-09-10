@@ -1,0 +1,1 @@
+// shared Job, JobStatus types
