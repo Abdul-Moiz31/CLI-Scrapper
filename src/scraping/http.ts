@@ -1,12 +1,13 @@
 // got + cheerio fetch and extract
 import got from "got";
 import * as cheerio from "cheerio";
+import { env } from "../config/env";
 
 export async function fetchAndExtract(
   url: string,
   selectors: Record<string, string>,
 ): Promise<Record<string, string>> {
-  const html = await got(url).text();
+  const html = await got(url, { timeout: { request: env.httpRequestTimeoutMs } }).text();
   const $ = cheerio.load(html);
 
   const data: Record<string, string> = {};
