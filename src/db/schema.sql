@@ -26,11 +26,15 @@ CREATE INDEX IF NOT EXISTS idx_jobs_processing
   ON jobs (locked_at)
   WHERE status = 'processing';
 
-CREATE TABLE IF NOT EXISTS results (
-  id          BIGSERIAL PRIMARY KEY,
-  job_id      BIGINT NOT NULL REFERENCES jobs(id),
-  data        JSONB NOT NULL,
-  scraped_at  TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+CREATE TABLE results (
+  id BIGSERIAL,
+  job_id BIGINT NOT NULL REFERENCES jobs(id),
+  source TEXT NOT NULL,
+  data JSONB NOT NULL,
+  scraped_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (id, source)
+) PARTITION BY LIST (source);
 
-CREATE INDEX IF NOT EXISTS idx_results_job_id ON results (job_id);
+CREATE TABLE results_quotes PARTITION OF results FOR VALUES IN ('quotes');
+CREATE TABLE results_default PARTITION OF results DEFAULT;
+CREATE INDEX idx_results_job_id ON results (job_id);
