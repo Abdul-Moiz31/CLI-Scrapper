@@ -43,5 +43,6 @@ CREATE TABLE results (
 ) PARTITION BY LIST (source);
 
 CREATE TABLE results_quotes PARTITION OF results FOR VALUES IN ('quotes');
+CREATE TABLE results_scrapingcourse PARTITION OF results FOR VALUES IN ('scrapingcourse');
 CREATE TABLE results_default PARTITION OF results DEFAULT;
 CREATE INDEX idx_results_job_id ON results (job_id);
