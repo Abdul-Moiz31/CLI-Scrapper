@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: scraper
+      POSTGRES_PASSWORD: scraper
+      POSTGRES_DB: scraper
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./src/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: scraper
+      RABBITMQ_DEFAULT_PASS: scraper
+    ports:
+      - "5672:5672"   # amqp
+      - "15672:15672" # management UI, http://localhost:15672
+
+volumes:
+  postgres_data:
