@@ -9,7 +9,8 @@ export async function insertJob(
   parentJobId: number | null = null,
 ): Promise<number> {
   const result = await pool.query<{ id: number }>(
-    `INSERT INTO jobs (url, source, page_type, parent_job_id) VALUES ($1, $2, $3, $4) RETURNING id`,
+    `INSERT INTO jobs (url, source, page_type, parent_job_id) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (source, url) DO UPDATE SET updated_at = now() RETURNING id`,
     [url, source, pageType, parentJobId],
   );
   return result.rows[0].id;
@@ -32,7 +33,8 @@ export async function insertChildJobs(
   });
 
   const result = await pool.query<{ id: number }>(
-    `INSERT INTO jobs (url, source, page_type, parent_job_id) VALUES ${values.join(", ")} RETURNING id`,
+    `INSERT INTO jobs (url, source, page_type, parent_job_id) VALUES ${values.join(", ")}
+     ON CONFLICT (source, url) DO NOTHING RETURNING id`,
     params,
   );
   return result.rows.map((row) => row.id);
@@ -60,18 +62,17 @@ export async function markDone(jobId: number): Promise<JobRow | null> {
   return result.rows[0] ?? null;
 }
 
-// handle job failure: increment attempts, set status to 'failed' if max_attempts reached, otherwise set to 'pending', and store the error message
-export async function handleFailure(jobId: number, errorMessage: string): Promise<JobRow | null> {
+// handle job failure: increment attempts; mark 'failed' if permanent or max_attempts reached, else 'pending'
+export async function handleFailure(jobId: number, errorMessage: string, permanent = false): Promise<JobRow | null> {
   const result = await pool.query<JobRow>(
     `UPDATE jobs
      SET attempts = attempts + 1,
-         status = CASE WHEN attempts + 1 >= max_attempts THEN 'failed'
-                       ELSE 'pending' END,
+         status = CASE WHEN $3 OR attempts + 1 >= max_attempts THEN 'failed' ELSE 'pending' END,
          error = $2,
          updated_at = now()
      WHERE id = $1
      RETURNING *`,
-    [jobId, errorMessage],
+    [jobId, errorMessage, permanent],
   );
   return result.rows[0] ?? null;
 }

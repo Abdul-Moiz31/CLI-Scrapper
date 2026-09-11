@@ -18,6 +18,11 @@ CREATE TABLE IF NOT EXISTS jobs (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Prevents the same URL being queued twice (overlapping list pages, reclaim races)
+-- and backs the ON CONFLICT (source, url) clauses in db/queries/jobs.ts
+CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_source_url
+  ON jobs (source, url);
+
 -- Speeds up "which jobs did this list job spawn" lookups
 CREATE INDEX IF NOT EXISTS idx_jobs_parent_job_id
   ON jobs (parent_job_id)
@@ -45,4 +50,7 @@ CREATE TABLE results (
 CREATE TABLE results_quotes PARTITION OF results FOR VALUES IN ('quotes');
 CREATE TABLE results_scrapingcourse PARTITION OF results FOR VALUES IN ('scrapingcourse');
 CREATE TABLE results_default PARTITION OF results DEFAULT;
-CREATE INDEX idx_results_job_id ON results (job_id);
+
+-- One result per job: prevents duplicate rows when a reclaim race lets two workers
+-- both finish the same detail job (backs the ON CONFLICT in db/queries/results.ts)
+CREATE UNIQUE INDEX idx_results_job_id_source ON results (job_id, source);

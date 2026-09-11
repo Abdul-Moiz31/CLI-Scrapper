@@ -5,6 +5,7 @@ import { definitions } from "../definitions";
 import { fetchHtml, extractFields } from "../scraping/http";
 import { extractLinks } from "../scraping/links";
 import { publishJob } from "../queue/publisher";
+import { PermanentScrapeError } from "../scraping/errors";
 import { logger } from "../logger";
 
 export async function processJob(jobId: number, workerId: string): Promise<void> {
@@ -46,7 +47,8 @@ export async function processJob(jobId: number, workerId: string): Promise<void>
   } catch (error) {
     logger.error({ jobId, workerId, error }, "job failed");
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const updated = await handleFailure(job.id, errorMessage);
+    const permanent = error instanceof PermanentScrapeError;
+    const updated = await handleFailure(job.id, errorMessage, permanent);
     if (updated?.status === "pending") {
       await publishJob(job.id);
     }

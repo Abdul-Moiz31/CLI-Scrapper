@@ -7,7 +7,8 @@ export async function saveResult(
   data: Record<string, unknown>,
 ): Promise<void> {
   await pool.query(
-    `INSERT INTO results (job_id, source, data) VALUES ($1, $2, $3)`,
+    `INSERT INTO results (job_id, source, data) VALUES ($1, $2, $3)
+     ON CONFLICT (job_id, source) DO UPDATE SET data = EXCLUDED.data, scraped_at = now()`,
     [jobId, source, data],
   );
 }
