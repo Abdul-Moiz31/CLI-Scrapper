@@ -4,7 +4,7 @@ import { publishJob } from "../../queue/publisher";
 import { definitions } from "../../definitions";
 import { logger } from "../../logger";
 
-export async function scrapeCommand(url: string, source: string): Promise<void> {
+export async function scrapeCommand(url: string, source: string, pageType?: string): Promise<void> {
   try {
     new URL(url);
   } catch {
@@ -16,8 +16,13 @@ export async function scrapeCommand(url: string, source: string): Promise<void> 
     throw new Error(`Unknown source: ${source}`);
   }
 
-  const jobId = await insertJob(url, source, definition.entryPageType);
+  const resolvedPageType = pageType ?? definition.entryPageType;
+  if (!definition.pageTypes[resolvedPageType]) {
+    throw new Error(`Unknown page type "${resolvedPageType}" for source: ${source}`);
+  }
+
+  const jobId = await insertJob(url, source, resolvedPageType);
   await publishJob(jobId);
 
-  logger.info({ jobId, url, source, pageType: definition.entryPageType }, "job queued");
+  logger.info({ jobId, url, source, pageType: resolvedPageType }, "job queued");
 }

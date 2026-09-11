@@ -42,6 +42,7 @@ export async function processJob(jobId: number, workerId: string): Promise<void>
         job.url,
         pageConfig.itemLinkSelector!,
         pageConfig.nextPageSelector,
+        pageConfig.offsetPagination,
       );
 
       const children = itemUrls.map((url) => ({ url, pageType: pageConfig.childPageType! }));

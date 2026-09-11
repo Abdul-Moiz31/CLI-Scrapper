@@ -12,9 +12,10 @@ program
   .command("scrape")
   .requiredOption("--url <url>", "URL to scrape")
   .requiredOption("--source <source>", "site definition to use")
-  .action(async (options: { url: string; source: string }) => {
+  .option("--page-type <pageType>", "entry page type, defaults to the definition's entryPageType")
+  .action(async (options: { url: string; source: string; pageType?: string }) => {
     try {
-      await scrapeCommand(options.url, options.source);
+      await scrapeCommand(options.url, options.source, options.pageType);
     } catch (err) {
       logger.error(err, "scrape command failed");
       process.exitCode = 1;

@@ -52,10 +52,11 @@ multiple worker instances), pino (logging). Package manager: pnpm.
 
 ## File size expectations
 
-Most files stay under ~40 lines. Four exceptions allowed to run 60-80
+Most files stay under ~40 lines. Five exceptions allowed to run 60-80
 lines because they carry the real logic of this system:
 `db/queries/jobs.ts`, `db/queries/claim.ts`, `worker/processJob.ts`,
-`proxy/manager.ts`. If any other file grows past 40 lines, split it.
+`proxy/manager.ts`, `scraping/links.ts`. If any other file grows past
+40 lines, split it.
 
 ## Build order (do not skip ahead)
 
