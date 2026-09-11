@@ -16,4 +16,5 @@ export const env = {
   reclaimCheckIntervalMs: Number(requireEnv("RECLAIM_CHECK_INTERVAL_MS")),
   reclaimTimeoutMinutes: Number(requireEnv("RECLAIM_TIMEOUT_MINUTES")),
   httpRequestTimeoutMs: Number(requireEnv("HTTP_REQUEST_TIMEOUT_MS")),
+  concurrencyRetryDelayMs: Number(requireEnv("CONCURRENCY_RETRY_DELAY_MS")),
 };

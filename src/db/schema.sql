@@ -38,6 +38,11 @@ CREATE INDEX IF NOT EXISTS idx_jobs_processing
   ON jobs (locked_at)
   WHERE status = 'processing';
 
+-- Speeds up the per-source in-flight count in claimJob's concurrency gate
+CREATE INDEX IF NOT EXISTS idx_jobs_processing_source
+  ON jobs (source)
+  WHERE status = 'processing';
+
 CREATE TABLE results (
   id BIGSERIAL,
   job_id BIGINT NOT NULL REFERENCES jobs(id),
@@ -49,7 +54,11 @@ CREATE TABLE results (
 
 CREATE TABLE results_quotes PARTITION OF results FOR VALUES IN ('quotes');
 CREATE TABLE results_scrapingcourse PARTITION OF results FOR VALUES IN ('scrapingcourse');
-CREATE TABLE results_default PARTITION OF results DEFAULT;
+
+-- No default partition: a source without its own partition here must fail
+-- the insert loudly (job errors) rather than silently landing in a
+-- catch-all. Adding a definition means adding its partition, same change
+-- (see CLAUDE.md "Schema evolution rules").
 
 -- One result per job: prevents duplicate rows when a reclaim race lets two workers
 -- both finish the same detail job (backs the ON CONFLICT in db/queries/results.ts)

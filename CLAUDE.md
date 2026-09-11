@@ -38,12 +38,24 @@ multiple worker instances), pino (logging). Package manager: pnpm.
   limits come from `config/env.ts` or a definition object, never typed
   literally inside logic.
 
+## Schema evolution rules, non-negotiable
+
+- Adding a definition, or changing which fields an existing definition
+  scrapes, is not done until `schema.sql` reflects it in the same change:
+  a new source gets its own `results_<source>` partition, and any new
+  field that needs to be queryable gets its own typed column there.
+  Never let a source fall through to a default/fallback partition.
+- Never drop a column from a results table because a definition stopped
+  scraping that field. Make it nullable and leave it in place. The
+  historical rows already hold data in it, dropping the column destroys
+  that history.
+
 ## File size expectations
 
-Most files stay under ~40 lines. Three exceptions allowed to run 60-80
+Most files stay under ~40 lines. Four exceptions allowed to run 60-80
 lines because they carry the real logic of this system:
-`db/queries/jobs.ts`, `worker/processJob.ts`, `proxy/manager.ts`.
-If any other file grows past 40 lines, split it.
+`db/queries/jobs.ts`, `db/queries/claim.ts`, `worker/processJob.ts`,
+`proxy/manager.ts`. If any other file grows past 40 lines, split it.
 
 ## Build order (do not skip ahead)
 

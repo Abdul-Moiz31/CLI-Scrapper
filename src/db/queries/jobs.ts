@@ -1,4 +1,5 @@
-// insertJob, insertChildJobs, claimJob (atomic), markDone, handleFailure
+// insertJob, insertChildJobs, markDone, handleFailure
+// (claimJob and its lookup helper live in claim.ts, split out for size)
 import { pool } from "../client";
 import { JobRow, ChildJobInput } from "../../types";
 
@@ -38,17 +39,6 @@ export async function insertChildJobs(
     params,
   );
   return result.rows.map((row) => row.id);
-}
-
-// claim jobs: update a job's status to 'processing' and assign it to a worker if it's currently 'pending'
-export async function claimJob(jobId: number, workerId: string): Promise<JobRow | null> {
-  const result = await pool.query<JobRow>(
-    `UPDATE jobs SET status = 'processing', worker_id = $1, locked_at = now(), updated_at = now()
-     WHERE id = $2 AND status = 'pending'
-     RETURNING *`,
-    [workerId, jobId],
-  );
-  return result.rows[0] ?? null;
 }
 
 // mark jobs as done: update a job's status to 'done' if it's currently 'processing'
